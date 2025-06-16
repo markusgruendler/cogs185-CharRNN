@@ -31,7 +31,7 @@ Options:
 --learning_rate    Learning rate                       0.01
 --chunk_len        Length of training chunks           200
 --batch_size       Number of examples per batch        100
---device           Choices are cpu, mps, cuda          mps
+--device           Device to train on (cpu/mps/cuda)   mps
 ```
 
 ## Generation
@@ -56,6 +56,6 @@ Options:
 -p, --prime_str      String to prime generation with
 -l, --predict_len    Length of prediction
 -t, --temperature    Temperature (higher is more chaotic)
---device             Choices are cpu, mps, cuda
+--device             Device to generate with (cpu/mps/cuda)
 ```
 
