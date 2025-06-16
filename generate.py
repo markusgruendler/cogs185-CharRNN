@@ -8,13 +8,16 @@ import argparse
 from helpers import *
 from model import *
 
-def generate(decoder, prime_str='A', predict_len=100, temperature=0.8, cuda=False):
+def generate(decoder, prime_str='A', predict_len=100, temperature=0.8, device='cpu'):
     hidden = decoder.init_hidden(1)
-    prime_input = Variable(char_tensor(prime_str).unsqueeze(0))
 
-    if cuda:
-        hidden = hidden.cuda()
-        prime_input = prime_input.cuda()
+    # safe device sending
+    if isinstance(hidden, tuple):
+        hidden = tuple(h.to(device) for h in hidden)
+    else:
+        hidden = hidden.to(device)
+    prime_input = Variable(char_tensor(prime_str).unsqueeze(0)).to(device)
+
     predicted = prime_str
 
     # Use priming string to "build up" hidden state
@@ -33,9 +36,8 @@ def generate(decoder, prime_str='A', predict_len=100, temperature=0.8, cuda=Fals
         # Add predicted character to string and use as next input
         predicted_char = all_characters[top_i]
         predicted += predicted_char
-        inp = Variable(char_tensor(predicted_char).unsqueeze(0))
-        if cuda:
-            inp = inp.cuda()
+
+        inp = Variable(char_tensor(predicted_char).unsqueeze(0)).to(device)
 
     return predicted
 
@@ -48,10 +50,17 @@ if __name__ == '__main__':
     argparser.add_argument('-p', '--prime_str', type=str, default='A')
     argparser.add_argument('-l', '--predict_len', type=int, default=100)
     argparser.add_argument('-t', '--temperature', type=float, default=0.8)
-    argparser.add_argument('--cuda', action='store_true')
+    argparser.add_argument('--device', type=str, default='cpu', choices=['cpu', 'cuda', 'mps'], help="Device to use for generation: 'cpu', 'cuda', or 'mps'")
+
     args = argparser.parse_args()
 
-    decoder = torch.load(args.filename)
+    device = resolve_device(args.device)  # From helpers.py
+    decoder = torch.load(args.filename, weights_only=False)
+    decoder.to(device)
+
+    # ignore filename argument and specifically pass device object instead of str to generate() call
     del args.filename
+    args.device = device
+
     print(generate(decoder, **vars(args)))
 

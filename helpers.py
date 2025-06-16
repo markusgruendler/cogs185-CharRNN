@@ -35,3 +35,33 @@ def time_since(since):
     s -= m * 60
     return '%dm %ds' % (m, s)
 
+# Reading device argument from CLI
+
+def resolve_device(requested: str = "cpu") -> torch.device:
+    """
+    Resolve and return a valid torch.device based on availability.
+
+    Parameters:
+        requested (str): 'cpu', 'cuda', or 'mps'
+
+    Returns:
+        torch.device: A usable device (may fallback to 'cpu')
+    """
+    requested = requested.lower()
+    device_checks = {
+        'cuda': lambda: torch.cuda.is_available(),
+        'mps':  lambda: torch.backends.mps.is_available(),
+        'cpu':  lambda: True
+    }
+
+    if requested not in device_checks:
+        raise ValueError(f"Unsupported device: '{requested}'")
+
+    if device_checks[requested]():
+        device = torch.device(requested)
+    else:
+        print(f"Requested device '{requested}' not available. Falling back to CPU.")
+        device = torch.device("cpu")
+
+    print(f"Using device: {device}")
+    return device

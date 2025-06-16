@@ -1,0 +1,11 @@
+# system files
+.DS_Store
+
+# python cache files
+__pycache__/
+
+# virtual environment folders
+cogs185venv/
+
+# pytorch checkpoint files
+*.pt

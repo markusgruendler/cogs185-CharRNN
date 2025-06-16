@@ -25,11 +25,11 @@ argparser.add_argument('--learning_rate', type=float, default=0.01)
 argparser.add_argument('--chunk_len', type=int, default=200)
 argparser.add_argument('--batch_size', type=int, default=100)
 argparser.add_argument('--shuffle', action='store_true')
-argparser.add_argument('--cuda', action='store_true')
+argparser.add_argument('--device', type=str, default='cpu', choices=['cpu', 'cuda', 'mps'], help="Device to use for training: 'cpu', 'cuda', or 'mps'")
+
 args = argparser.parse_args()
 
-if args.cuda:
-    print("Using CUDA")
+device = resolve_device(args.device) # see helpers.py
 
 file, file_len = read_file(args.filename)
 
@@ -44,15 +44,20 @@ def random_training_set(chunk_len, batch_size):
         target[bi] = char_tensor(chunk[1:])
     inp = Variable(inp)
     target = Variable(target)
-    if args.cuda:
-        inp = inp.cuda()
-        target = target.cuda()
+    
+    inp = inp.to(device)
+    target = target.to(device)
     return inp, target
 
 def train(inp, target):
     hidden = decoder.init_hidden(args.batch_size)
-    if args.cuda:
-        hidden = hidden.cuda()
+
+    # safe device sending
+    if isinstance(hidden, tuple):
+        hidden = tuple(h.to(device) for h in hidden)  # LSTM
+    else:
+        hidden = hidden.to(device)  # GRU
+
     decoder.zero_grad()
     loss = 0
 
@@ -63,7 +68,7 @@ def train(inp, target):
     loss.backward()
     decoder_optimizer.step()
 
-    return loss.data[0] / args.chunk_len
+    return loss.item() / args.chunk_len
 
 def save():
     save_filename = os.path.splitext(os.path.basename(args.filename))[0] + '.pt'
@@ -82,8 +87,7 @@ decoder = CharRNN(
 decoder_optimizer = torch.optim.Adam(decoder.parameters(), lr=args.learning_rate)
 criterion = nn.CrossEntropyLoss()
 
-if args.cuda:
-    decoder.cuda()
+decoder = decoder.to(device)
 
 start = time.time()
 all_losses = []
@@ -97,7 +101,7 @@ try:
 
         if epoch % args.print_every == 0:
             print('[%s (%d %d%%) %.4f]' % (time_since(start), epoch, epoch / args.n_epochs * 100, loss))
-            print(generate(decoder, 'Wh', 100, cuda=args.cuda), '\n')
+            print(generate(decoder, 'Wh', 100, device=args.device), '\n')
 
     print("Saving...")
     save()
