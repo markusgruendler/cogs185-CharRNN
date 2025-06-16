@@ -6,6 +6,8 @@ import torch.nn as nn
 from torch.autograd import Variable
 import argparse
 import os
+import wandb
+from datetime import datetime
 
 from tqdm import tqdm
 
@@ -19,15 +21,27 @@ argparser.add_argument('filename', type=str)
 argparser.add_argument('--model', type=str, default="gru")
 argparser.add_argument('--n_epochs', type=int, default=2000)
 argparser.add_argument('--print_every', type=int, default=100)
-argparser.add_argument('--hidden_size', type=int, default=100)
+argparser.add_argument('--hidden_size', type=int, default=256)
 argparser.add_argument('--n_layers', type=int, default=2)
 argparser.add_argument('--learning_rate', type=float, default=0.01)
 argparser.add_argument('--chunk_len', type=int, default=200)
 argparser.add_argument('--batch_size', type=int, default=100)
 argparser.add_argument('--shuffle', action='store_true')
 argparser.add_argument('--device', type=str, default='cpu', choices=['cpu', 'cuda', 'mps'], help="Device to use for training: 'cpu', 'cuda', or 'mps'")
+argparser.add_argument('--dropout', type=float, default=0.0, help="Dropout probability between RNN layers")
 
 args = argparser.parse_args()
+
+run_name = f"{os.path.splitext(os.path.basename(args.filename))[0]}_" \
+           f"{args.model}_hs{args.hidden_size}_nl{args.n_layers}_bs{args.batch_size}_lr{args.learning_rate:.0e}"
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+wandb.init(
+    entity="mgruendler-uc-san-diego",
+    project="cogs185-finalproject",
+    config=vars(args),   # log hyperparameters
+    name=f'{os.path.splitext(os.path.basename(args.filename))[0]}_{timestamp}.pt'
+)
 
 device = resolve_device(args.device) # see helpers.py
 
@@ -71,10 +85,13 @@ def train(inp, target):
     return loss.item() / args.chunk_len
 
 def save():
-    save_filename = os.path.splitext(os.path.basename(args.filename))[0] + '.pt'
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    save_filename = f'checkpoints/{os.path.splitext(os.path.basename(args.filename))[0]}_{timestamp}.pt'
     torch.save(decoder, save_filename)
     print('Saved as %s' % save_filename)
 
+    # wandb.save(f'{save_filename}')
+    wandb.finish()
 # Initialize models and start training
 
 decoder = CharRNN(
@@ -83,6 +100,7 @@ decoder = CharRNN(
     n_characters,
     model=args.model,
     n_layers=args.n_layers,
+    dropout=args.dropout
 )
 decoder_optimizer = torch.optim.Adam(decoder.parameters(), lr=args.learning_rate)
 criterion = nn.CrossEntropyLoss()
@@ -99,9 +117,16 @@ try:
         loss = train(*random_training_set(args.chunk_len, args.batch_size))
         loss_avg += loss
 
+        # Log raw loss for every step
+        wandb.log({"raw_loss": loss, "epoch": epoch})
+
         if epoch % args.print_every == 0:
             print('[%s (%d %d%%) %.4f]' % (time_since(start), epoch, epoch / args.n_epochs * 100, loss))
             print(generate(decoder, 'Wh', 100, device=args.device), '\n')
+
+            # avg_loss = loss_avg / args.print_every
+            # wandb.log({"avg_loss": avg_loss, "epoch": epoch})
+
 
     print("Saving...")
     save()

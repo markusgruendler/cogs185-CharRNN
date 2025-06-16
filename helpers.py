@@ -63,5 +63,5 @@ def resolve_device(requested: str = "cpu") -> torch.device:
         print(f"Requested device '{requested}' not available. Falling back to CPU.")
         device = torch.device("cpu")
 
-    print(f"Using device: {device}")
+    # print(f"Using device: {device}")
     return device
