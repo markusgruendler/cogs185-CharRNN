@@ -1,10 +1,10 @@
-# char-rnn.pytorch
+# COGS 185 Project: Pytorch CharRNN
 
-A PyTorch implementation of [char-rnn](https://github.com/karpathy/char-rnn) for character-level text generation. This is copied from [the Practical PyTorch series](https://github.com/spro/practical-pytorch/blob/master/char-rnn-generation/char-rnn-generation.ipynb).
+Forked work from Sean Roberton's [char-rrn.pytorch](https://github.com/spro/char-rnn.pytorch), which itself is a PyTorch implementation of [char-rnn](https://github.com/karpathy/char-rnn) for character-level text generation, and copied from [the Practical PyTorch series](https://github.com/spro/practical-pytorch/blob/master/char-rnn-generation/char-rnn-generation.ipynb).
 
 ## Training
 
-Download [this Shakespeare dataset](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt) (from the original char-rnn) as `shakespeare.txt`.  Or bring your own dataset &mdash; it should be a plain text file (preferably ASCII).
+Included is [this Shakespeare dataset](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt) (from the original char-rnn) as `shakespeare.txt`.  Can bring your own dataset &mdash; it should be a plain text file (preferably ASCII).
 
 Run `train.py` with the dataset filename to train and save the network:
 
@@ -31,7 +31,7 @@ Options:
 --learning_rate    Learning rate                       0.01
 --chunk_len        Length of training chunks           200
 --batch_size       Number of examples per batch        100
---cuda             Use CUDA
+--device           Choices are cpu, mps, cuda          mps
 ```
 
 ## Generation
@@ -56,6 +56,6 @@ Options:
 -p, --prime_str      String to prime generation with
 -l, --predict_len    Length of prediction
 -t, --temperature    Temperature (higher is more chaotic)
---cuda               Use CUDA
+--device             Choices are cpu, mps, cuda
 ```
 
